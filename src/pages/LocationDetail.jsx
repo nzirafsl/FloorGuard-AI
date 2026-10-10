@@ -9,7 +9,7 @@ const RISK = {
     border:   "#a8d5bc",
     cardBg:   "#edf7f1",
     barColor: "#1a7a4a",
-    barPos:   0,           // 0 = left segment active
+    barPos:   0,
     desc:     "Low estimated risk. Stay alert to changing rainfall.\nFollow official flood alerts.",
   },
   Medium: {
@@ -31,6 +31,16 @@ const RISK = {
     barColor: "#c62828",
     barPos:   2,
     desc:     "High risk. Prepare to evacuate if advised.\nStay away from rivers and drains.",
+  },
+  Severe: {
+    label:    "SEVERE RISK",
+    color:    "#7b1fa2",
+    bg:       "#f3e5f5",
+    border:   "#ce93d8",
+    cardBg:   "#fdf0ff",
+    barColor: "#7b1fa2",
+    barPos:   3,
+    desc:     "Severe risk. Evacuate immediately if advised.\nCall 999 — do not wait.",
   },
 };
 
@@ -59,8 +69,8 @@ export default function LocationDetail({
   onBack            = () => {},
   onNavigate        = () => {},
   locationName      = "Serdang, Selangor",
-  riskLevel         = "Low",
-  riskPct           = 18,
+  riskLevel         = "High",
+  riskPct           = 68,
   minutesUntilFlood = null,
   modelProbability  = null,
   predictionHorizon = "next 3 hours",
@@ -187,8 +197,8 @@ export default function LocationDetail({
 
         {/* Risk bar */}
         <div style={riskBarWrap}>
-          {["LOW", "MEDIUM", "HIGH"].map((seg, i) => {
-            const segColors = ["#1a7a4a", "#b77810", "#c62828"];
+          {["LOW", "MEDIUM", "HIGH", "SEVERE"].map((seg, i) => {
+            const segColors = ["#1a7a4a", "#b77810", "#c62828", "#7b1fa2"];
             const active    = i === risk.barPos;
             return (
               <div
