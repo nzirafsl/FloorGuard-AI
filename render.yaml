@@ -1,0 +1,37 @@
+# ── Render Blueprint — FloodGuard AI ──────────────────────────────────────────
+# Docs: https://render.com/docs/blueprint-spec
+# Push to GitHub → connect repo on render.com → Render reads this file automatically.
+
+services:
+
+  # ── Python / FastAPI backend ─────────────────────────────────────────────────
+  - type: web
+    name: floodguard-ai-backend
+    runtime: python
+    region: singapore          # closest to Malaysia
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend_api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    healthCheckPath: /health
+
+  # ── Vite / React frontend (static site) ──────────────────────────────────────
+  - type: web
+    name: floodguard-ai-frontend
+    runtime: static
+    region: singapore
+    plan: free
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # After the backend deploys, Render gives it a URL like:
+      # https://floodguard-ai-backend.onrender.com
+      # Set that URL here so the frontend can reach the AI API.
+      - key: VITE_API_URL
+        value: https://floodguard-ai-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
