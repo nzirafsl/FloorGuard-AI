@@ -3,7 +3,7 @@
  * Base URL: http://localhost:8000  (set VITE_API_URL in .env to override)
  */
 
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_URL ?? "https://floodguard-ai-backend-o5mv.onrender.com";
 
 // ── Generic fetch wrapper ─────────────────────────────────────────────────────
 async function request(method, path, body) {
