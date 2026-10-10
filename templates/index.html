@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FloodAlert</title>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #e8ecf0;
+      min-height: 100dvh;
+    }
+    #root { min-height: 100dvh; }
+  </style>
+
+  <!--
+    Import map: tells the browser where to resolve bare specifiers like
+    "react", "react-dom/client", and "lucide-react".
+
+    We point to ESM-compatible CDN builds so no bundler is needed.
+    Switch these to local /node_modules paths if you add a bundler later.
+  -->
+  <script type="importmap">
+  {
+    "imports": {
+      "react":           "https://esm.sh/react@18.3.1",
+      "react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime",
+      "react-dom/client":"https://esm.sh/react-dom@18.3.1/client",
+      "lucide-react":    "https://esm.sh/lucide-react@0.469.0"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!--
+    Entry point module — imports App and mounts it.
+    Babel transform is NOT needed here because browsers natively support
+    ESM + JSX is handled via the esm.sh CDN's automatic transform.
+    If you see JSX errors, add @babel/standalone below.
+  -->
+  <script type="module">
+    import { createRoot } from "react-dom/client";
+    import { createElement } from "react";
+
+    // Dynamic import so the module graph resolves after importmap is ready
+    const { default: App } = await import("../src/App.jsx");
+    createRoot(document.getElementById("root")).render(createElement(App));
+  </script>
+</body>
+</html>
