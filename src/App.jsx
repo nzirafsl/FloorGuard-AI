@@ -1,17 +1,21 @@
-import { useState } from "react";
-import { Home as HomeIcon, Map, Shield, LifeBuoy, Phone } from "lucide-react";
-import FloodModal  from "./components/FloodModal.jsx";
-import SosModal    from "./components/SosModal.jsx";
-import HomPage     from "./pages/Home.jsx";
-import SafetyTips  from "./pages/SafetyTips.jsx";
-import SafePlaces  from "./pages/SafePlaces.jsx";
-import RequestHelp from "./pages/RequestHelp.jsx";
+import { useState, useEffect } from "react";
+import { Home as HomeIcon, Map, Shield, LifeBuoy, Phone, Users } from "lucide-react";
+import FloodModal      from "./components/FloodModal.jsx";
+import SosModal        from "./components/SosModal.jsx";
+import HomPage         from "./pages/Home.jsx";
+import SafetyTips      from "./pages/SafetyTips.jsx";
+import SafePlaces      from "./pages/SafePlaces.jsx";
+import RequestHelp     from "./pages/RequestHelp.jsx";
+import CommunityHelp   from "./pages/CommunityHelp.jsx";
+import LocationDetail  from "./pages/LocationDetail.jsx";
+import { predictSerdang } from "./api.js";
 
-// ── Sample alert — swap for live data from POST /predict ──────────────────────
-const SAMPLE_ALERT = {
+// ── Sample alert — fallback used until AI prediction loads ────────────────────
+const FALLBACK_ALERT = {
   location:          "Serdang, Selangor",
   riskLevel:         "High",
   riskColor:         "#d64045",
+  riskPct:           68,
   message:           "Upstream river rising rapidly. Main route may submerge soon.",
   advice:            "Take the elevated expressway. Avoid low-lying underpasses near Mines Resort City.",
   minutesUntilFlood: 20,
@@ -23,44 +27,111 @@ const SAMPLE_ALERT = {
 
 // ── Bottom nav tab definitions ────────────────────────────────────────────────
 const TABS = [
-  { key: "home",   label: "Home",   Icon: HomeIcon },
-  { key: "map",    label: "Map",    Icon: Map      },
-  { key: "safety", label: "Safety", Icon: Shield   },
-  { key: "help",   label: "Help",   Icon: LifeBuoy },
+  { key: "home",      label: "Home",      Icon: HomeIcon },
+  { key: "map",       label: "Map",       Icon: Map      },
+  { key: "safety",    label: "Safety",    Icon: Shield   },
+  { key: "help",      label: "Help",      Icon: LifeBuoy },
+  { key: "community", label: "Community", Icon: Users    },
 ];
 
 export default function App() {
-  const [activeTab,   setActiveTab]   = useState("home");
-  const [floodOpen,   setFloodOpen]   = useState(false);
-  const [sosOpen,     setSosOpen]     = useState(false);
-  const [sosConfirmed,setSosConfirmed]= useState(false);
+  const [activeTab,    setActiveTab]    = useState("home");
+  const [subPage,      setSubPage]      = useState(null);
+  const [floodOpen,    setFloodOpen]    = useState(false);
+  const [sosOpen,      setSosOpen]      = useState(false);
+  const [sosConfirmed, setSosConfirmed] = useState(false);
+
+  // ── AI prediction state ──────────────────────────────────────────────────
+  const [alert,        setAlert]        = useState(FALLBACK_ALERT);
+  const [aiLoading,    setAiLoading]    = useState(true);
+  const [aiError,      setAiError]      = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAiLoading(true);
+    predictSerdang()
+      .then((res) => {
+        if (cancelled) return;
+        setAlert((prev) => ({
+          ...prev,
+          riskLevel:         res.risk_cat,
+          riskColor:         res.risk_color,
+          riskPct:           res.risk_pct,
+          minutesUntilFlood: res.minutes ?? null,
+          modelProbability:  res.model_probability,
+          predictionHorizon: res.prediction_horizon,
+        }));
+        setAiError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn("[AI] prediction failed, using fallback:", err.message);
+        setAiError("AI backend offline — showing last known data.");
+      })
+      .finally(() => { if (!cancelled) setAiLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   function handleSosConfirm() {
     setSosConfirmed(true);
     console.log("[SOS] confirmed at", new Date().toISOString());
   }
 
+  function handleNavigate(tabKey) {
+    setSubPage(null);
+    setActiveTab(tabKey);
+  }
+
   // ── Page content switcher ──────────────────────────────────────────────────
   function renderPage() {
+    // Sub-page: Location Detail (drill-down from Home)
+    if (subPage === "locationDetail") {
+      return (
+        <LocationDetail
+          locationName={alert.location}
+          riskLevel={alert.riskLevel}
+          riskPct={alert.riskPct}
+          minutesUntilFlood={alert.minutesUntilFlood}
+          modelProbability={alert.modelProbability}
+          predictionHorizon={alert.predictionHorizon}
+          aiLoading={aiLoading}
+          onBack={() => setSubPage(null)}
+          onNavigate={handleNavigate}
+        />
+      );
+    }
+
     switch (activeTab) {
       case "home":
         return (
           <HomPage
-            locationName="Serdang, Selangor"
+            locationName={alert.location}
             locationSub="Selangor · Malaysia"
-            riskLevel={SAMPLE_ALERT.riskLevel}
-            riskColor={SAMPLE_ALERT.riskColor}
-            alert={SAMPLE_ALERT}
-            onOpenFloodModal={() => setFloodOpen(true)}
+            riskLevel={alert.riskLevel}
+            riskColor={alert.riskColor}
+            riskPct={alert.riskPct}
+            aiLoading={aiLoading}
+            alert={alert}
+            onOpenFloodModal={() => setSubPage("locationDetail")}
             onOpenSosModal={()   => setSosOpen(true)}
           />
         );
       case "map":
         return <SafePlaces />;
       case "safety":
-        return <SafetyTips />;
+        return (
+          <SafetyTips
+            riskLevel={alert.riskLevel}
+            riskColor={alert.riskColor}
+            riskPct={alert.riskPct}
+            aiLoading={aiLoading}
+            aiError={aiError}
+          />
+        );
       case "help":
         return <RequestHelp />;
+      case "community":
+        return <CommunityHelp />;
       default:
         return null;
     }
@@ -75,6 +146,16 @@ export default function App() {
         <span style={appName}>FloodAlert</span>
         <span style={country}>Malaysia</span>
       </header>
+
+      {/* ── AI status strip ── */}
+      {aiError && (
+        <div style={aiBanner}>⚠️ {aiError}</div>
+      )}
+      {aiLoading && (
+        <div style={{ ...aiBanner, background: "#e8f0fb", color: "#1565c0" }}>
+          🤖 AI model loading prediction…
+        </div>
+      )}
 
       {/* ── Scrollable page area ── */}
       <main style={pageArea}>
@@ -127,12 +208,12 @@ export default function App() {
       <FloodModal
         isOpen={floodOpen}
         onClose={() => setFloodOpen(false)}
-        alert={SAMPLE_ALERT}
+        alert={alert}
       />
       <SosModal
         isOpen={sosOpen}
         onClose={() => setSosOpen(false)}
-        location={SAMPLE_ALERT.location}
+        location={alert.location}
         onConfirm={handleSosConfirm}
       />
     </div>
@@ -239,7 +320,7 @@ const navBar = {
   background: "#fff",
   borderTop:  "1px solid #e4eaf0",
   display:    "flex",
-  padding:    "5px 16px 0",
+  padding:    "5px 6px 0",
   boxShadow:  "0 -2px 10px rgba(21,45,75,.06)",
 };
 
@@ -275,4 +356,14 @@ const homeIndicator = {
   background:   "#152d4b",
   borderRadius: 100,
   margin:       "4px auto 0",
+};
+
+const aiBanner = {
+  background:  "#fff8e1",
+  color:       "#7a5800",
+  fontSize:    11,
+  fontWeight:  600,
+  padding:     "6px 16px",
+  textAlign:   "center",
+  flexShrink:  0,
 };

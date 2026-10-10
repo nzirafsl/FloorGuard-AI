@@ -1,4 +1,94 @@
+import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
+import "leaflet/dist/leaflet.css";
+
+// ── Safe places for the home map markers ─────────────────────────────────────
+const SAFE_PLACES = [
+  { icon: "🏫", name: "SK Serdang",       lat: 2.9982,  lon: 101.7036, color: "#1565c0" },
+  { icon: "🏥", name: "Hospital Putrajaya",lat: 2.9264,  lon: 101.6964, color: "#c62828" },
+  { icon: "🅿️", name: "SACC Mall Parking", lat: 3.0726,  lon: 101.5220, color: "#2e7d32" },
+  { icon: "🏛️", name: "Dewan Serdang",     lat: 3.0140,  lon: 101.7010, color: "#6a1b9a" },
+];
+
+function makePinIcon(L, emoji, color) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+        width:32px;height:32px;border-radius:50% 50% 50% 0;
+        background:${color};transform:rotate(-45deg);
+        border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.3);
+        display:flex;align-items:center;justify-content:center;">
+      <span style="transform:rotate(45deg);font-size:13px;line-height:1">${emoji}</span>
+    </div>`,
+    iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
+  });
+}
+
+function makeUserPin(L) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+        width:16px;height:16px;border-radius:50%;
+        background:#1565c0;border:3px solid #fff;
+        box-shadow:0 0 0 4px rgba(21,101,192,.25);"></div>`,
+    iconSize: [16, 16], iconAnchor: [8, 8],
+  });
+}
+
+// ── Mini-map component ────────────────────────────────────────────────────────
+function HomeMap({ lat, lon, riskColor }) {
+  const divRef    = useRef(null);
+  const mapHandle = useRef(null);
+
+  useEffect(() => {
+    const el = divRef.current;
+    if (!el) return;
+
+    if (mapHandle.current) { mapHandle.current.remove(); mapHandle.current = null; }
+
+    import("leaflet").then((mod) => {
+      const L = mod.default ?? mod;
+      if (!divRef.current) return;
+
+      const map = L.map(divRef.current, {
+        center: [lat, lon], zoom: 13,
+        zoomControl: true, attributionControl: true,
+      });
+      mapHandle.current = map;
+      setTimeout(() => map.invalidateSize(), 0);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Flood risk circle
+      L.circle([lat, lon], {
+        radius: 1200, color: riskColor, fillColor: riskColor,
+        fillOpacity: 0.1, weight: 2, dashArray: "6 4",
+      }).addTo(map).bindPopup("⚠️ High flood-risk zone");
+
+      // User marker
+      L.marker([lat, lon], { icon: makeUserPin(L) })
+        .addTo(map)
+        .bindPopup("<b>📍 Your Location</b><br/>Serdang, Selangor")
+        .openPopup();
+
+      // Safe-place markers
+      SAFE_PLACES.forEach(({ icon, name, lat: slat, lon: slon, color }) => {
+        L.marker([slat, slon], { icon: makePinIcon(L, icon, color) })
+          .addTo(map)
+          .bindPopup(`<b>${icon} ${name}</b>`);
+      });
+    });
+
+    return () => {
+      if (mapHandle.current) { mapHandle.current.remove(); mapHandle.current = null; }
+    };
+  }, [lat, lon, riskColor]);
+
+  return <div ref={divRef} style={{ width: "100%", height: "100%" }} />;
+}
 
 /**
  * Home — main map/overview screen.
@@ -77,23 +167,19 @@ export default function Home({
         </span>
       </button>
 
-      {/* Map placeholder */}
+      {/* Live Leaflet map */}
       <div
         style={{
-          background:     "#f1f3ef",
-          border:         "1px solid #e4eaf0",
-          borderRadius:   20,
-          height:         320,
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-          color:          "#68788b",
-          fontSize:       14,
-          marginBottom:   10,
-          boxShadow:      "0 3px 12px rgba(21,45,75,.05)",
+          border:       "1px solid #e4eaf0",
+          borderRadius: 20,
+          height:       320,
+          marginBottom: 10,
+          boxShadow:    "0 3px 12px rgba(21,45,75,.05)",
+          overflow:     "hidden",
+          background:   "#e8eef4",
         }}
       >
-        🗺️ Map — integrate Leaflet here
+        <HomeMap lat={3.0738} lon={101.5183} riskColor={riskColor} />
       </div>
 
       {/* Risk legend */}
