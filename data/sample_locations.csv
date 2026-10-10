@@ -1,0 +1,8 @@
+name,district,state,lat,lon,rainfall_1h_mm,rainfall_3h_mm,rainfall_24h_mm,water_level_m,water_level_change_m_per_h,drainage_capacity_index,elevation_m,impervious_surface_pct,near_river,threat_type
+Shah Alam,Petaling,Selangor,3.0738,101.5183,38,85,190,3.1,0.22,0.38,7,82,1,Basement Parking Flooding
+Kota Bharu,Kota Bharu,Kelantan,6.1254,102.2381,55,130,280,4.5,0.41,0.3,5,65,1,Blocked Highway Route
+Kuantan,Kuantan,Pahang,3.8126,103.3256,20,45,100,1.8,0.08,0.6,12,55,1,Blocked Highway Route
+Kuala Lumpur,KL City,W.P. KL,3.139,101.6869,42,95,200,2.9,0.18,0.35,9,88,1,Basement Parking Flooding
+Johor Bahru,JB City,Johor,1.4927,103.7414,15,35,80,1.2,0.03,0.65,15,70,0,Blocked Highway Route
+Kota Kinabalu,KK City,Sabah,5.9804,116.0735,28,62,140,2.2,0.12,0.52,8,60,1,Basement Parking Flooding
+Kuching,Kuching,Sarawak,1.5535,110.3593,12,28,65,1.0,0.02,0.72,20,45,0,Blocked Highway Route
